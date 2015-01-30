@@ -1,0 +1,13 @@
+Ex:
+(let x = x + 5 in x + 12) + 10
+Think about it: is it recursive for x in the right side?
+It depends on what is the sementic of "let".
+
+let x = 0 in
+  let x = x + 1 in x
+
+In haskell:
+  let ones = 1::ones in 5
+  it's correct. (lazy)
+  
+tail-recursion
