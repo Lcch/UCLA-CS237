@@ -1,4 +1,4 @@
-var _ = '$$$';
+var _ = '_';
 var many = function (x) { return [many, x]; };
 var when = function (x) { return [when, x]; };
 
@@ -31,6 +31,7 @@ function isPrimValue(value) {
 
 function matchPattern(value, pat, varList) {
   if (pat === _) {
+    /* TODO: should we check the valid of value*/
     varList.push(value);
     return true;
   } else 
@@ -39,25 +40,38 @@ function matchPattern(value, pat, varList) {
   } else 
   if (isWhen(pat)) {
     var when_func = pat[1];
-    return when_func.apply(undefined, [value]);
-  } else    
+    if (when_func.apply(undefined, [value])) {
+      varList.push(value);
+      return true;
+    } else {
+      return false;
+    }
+  } else 
   if (typeof value === 'object' && value.hasOwnProperty(length)) {
-    // list
     if (typeof pat === 'object' && pat.hasOwnProperty(length)) {
       console.log(value);
       var value_index = 0, pat_index = 0;
-      while (value_index < value.length && pat_index < pat.length) {
+      while (pat_index < pat.length) {
         if (isMany(pat[pat_index])) {
-          return false;
+          var new_list = []
+          while (value_index < value.length) {
+            if (!matchPattern(value[value_index], pat[pat_index][1], new_list)) {
+              break;
+            }
+            value_index ++;
+          }
+          varList.push(new_list);
+          pat_index ++;
         } else { 
-         if (!matchPattern(value[value_index], pat[pat_index], varList)) {
+          if (value_index >= value.length ||
+              !matchPattern(value[value_index], pat[pat_index], varList)) {
             return false;
-         }
-         value_index ++;
-         pat_index ++;
+          }
+          value_index ++;
+          pat_index ++;
         }
       }
-      return value_index == value.length && pat_index == pat.length;
+      return value_index == value.length;
     } else {
       return false;
     }

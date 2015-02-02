@@ -83,6 +83,31 @@ tests(
           '  [3], function() { return 3; }\n' +
           ')',
     shouldThrow: true
+  },
+  {
+    name: 'many 1',
+    code: 'match([1,2,3], [many(_)], function() { return JSON.stringify(arguments); })',
+    expected: '{"0":[1,2,3]}'
+  },
+  {
+    name: 'many 2',
+    code: 'match([1,2,3], [many(when(function(x) { return x == 1; })),many(_)], function() { return JSON.stringify(arguments); })',
+    expected: '{"0":[1],"1":[2,3]}'
+  },
+  {
+    name: 'many 3',
+    code: 'match([2,2,3], [many(when(function(x) { return x == 1; })),many(_)], function() { return JSON.stringify(arguments); })',
+    expected: '{"0":[],"1":[2,2,3]}'
+  },
+  { 
+    name: 'many 4',
+    code: 'match([1,2,3], [many(when(function(x) { return x == 1; })),2,many(_)], function() { return JSON.stringify(arguments); })',
+    expected: '{"0":[1],"1":[3]}'
+  },
+  {
+    name: 'many 5',
+    code: 'match([[1,2],[3,4]], [many([many(_)])], function() { return JSON.stringify(arguments); })',
+    expected: '{"0":[[1,2],[3,4]]}'
   }
 );
 
