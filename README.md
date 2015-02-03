@@ -1,7 +1,13 @@
-# CS237-Prototyping Programming Language
+# S237-Prototyping Programming Language
 
-1. hw1: done
-2. hw2: pending
+## 1. hw1 & hw2: Done
+Funcitonal Programming interpreter
 
+Note:
+
+1. delay e: fun -> e; force e: e()
+
+## 2. hw3: Done 
+Pattern Matching (internal DSL)
 
 
