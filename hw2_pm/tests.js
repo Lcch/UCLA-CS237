@@ -17,16 +17,12 @@ function isNumber(x) {
   return typeof x === 'number';
 }
 
-// Tests!
+function isOne(x) {
+  return x === 1;
+}
 
+// Tests!
 tests(
-  {
-    name: 'wildcard',
-    code: 'match(123,\n' +
-          '  _, function(x) { return x + 2; }\n' +
-          ')',
-    expected: 125
-  },
   {
     name: 'literal pattern',
     code: 'match(123,\n' +
@@ -91,23 +87,69 @@ tests(
   },
   {
     name: 'many 2',
-    code: 'match([1,2,3], [many(when(function(x) { return x == 1; })),many(_)], function() { return JSON.stringify(arguments); })',
+    code: 'match([1,2,3], [many(when(isOne)),many(_)], function() { return JSON.stringify(arguments); })',
     expected: '{"0":[1],"1":[2,3]}'
   },
   {
     name: 'many 3',
-    code: 'match([2,2,3], [many(when(function(x) { return x == 1; })),many(_)], function() { return JSON.stringify(arguments); })',
+    code: 'match([2,2,3], [many(when(isOne)),many(_)], function() { return JSON.stringify(arguments); })',
     expected: '{"0":[],"1":[2,2,3]}'
   },
   { 
     name: 'many 4',
-    code: 'match([1,2,3], [many(when(function(x) { return x == 1; })),2,many(_)], function() { return JSON.stringify(arguments); })',
+    code: 'match([1,2,3], [many(when(isOne)),2,many(_)], function() { return JSON.stringify(arguments); })',
     expected: '{"0":[1],"1":[3]}'
   },
   {
     name: 'many 5',
     code: 'match([[1,2],[3,4]], [many([many(_)])], function() { return JSON.stringify(arguments); })',
     expected: '{"0":[[1,2],[3,4]]}'
+  },
+  {
+    name: 'many should be nested in array',
+    code: 'match(1, many(when(isNumber)), function(x) { return x; })',
+    shouldThrow: true 
+  },
+  {
+    name: 'many should be nested in array 2',
+    code: 'match([1], [many(when(isNumber))], function(x) { return x; })',
+    expected: [1]
+  },
+  {
+    name: 'many shoule be nested in array 3',
+    code: 'match([1, "a"], [many(when(isNumber)), many(_)], function(x, y) { return x.concat(y); })',
+    expected: [1, "a"]
+  },
+  {
+    name: 'many 6',
+    code: 'match([1, 2], [many(_), many(_)], function() { return JSON.stringify(arguments); })',
+    expected: '{"0":[1,2],"1":[]}'
+  },
+  {
+    name: 'binding',
+    code: 'match([[1, 2], [3, 4]], [[_, _], [_, _]], function(a, b, c, d) { return a + b + c + d; })',
+    expected: 10
+  },
+  {
+    name: 'binding 2',
+    code: 'match([[1, 2], [3, 4]], [many([_, _])], function(a) { return a; })',
+    expected: [1, 2, 3, 4]
+  },
+  {
+    name: 'binding 3',
+    code: 'match([[1, 2], [3, 4]], [_, _, many(_)], function(a, b, cs) { return cs; })',
+    expected: []
+  },
+  {
+    name: 'binding 4',
+    code: 'match([[1, 2], [3, 4]], [many([many(_)])], function(ps) { return ps; })',
+    expected: [[1,2],[3,4]]
   }
+
+/*
+  [[_, _], [_, _]], function(a, b, c, d)
+  [many([_, _])], function(ps) {  ps = [1, 2, 3, 4]
+  [many([many(_)])], function(ps) { [[1, 2,], [3, 4]] }
+    */
 );
 

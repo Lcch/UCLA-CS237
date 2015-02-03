@@ -31,7 +31,6 @@ function isPrimValue(value) {
 
 function matchPattern(value, pat, varList) {
   if (pat === _) {
-    /* TODO: should we check the valid of value*/
     varList.push(value);
     return true;
   } else 
@@ -40,22 +39,20 @@ function matchPattern(value, pat, varList) {
   } else 
   if (isWhen(pat)) {
     var when_func = pat[1];
-    if (when_func.apply(undefined, [value])) {
-      varList.push(value);
-      return true;
-    } else {
-      return false;
-    }
+    var cond = when_func.apply(undefined, [value]); 
+    if (cond) varList.push(value);
+    return cond;
   } else 
   if (typeof value === 'object' && value.hasOwnProperty(length)) {
     if (typeof pat === 'object' && pat.hasOwnProperty(length)) {
-      console.log(value);
       var value_index = 0, pat_index = 0;
       while (pat_index < pat.length) {
         if (isMany(pat[pat_index])) {
           var new_list = []
           while (value_index < value.length) {
-            if (!matchPattern(value[value_index], pat[pat_index][1], new_list)) {
+            if (!matchPattern(value[value_index], 
+                              pat[pat_index][1],
+                              new_list)) {
               break;
             }
             value_index ++;
@@ -78,5 +75,3 @@ function matchPattern(value, pat, varList) {
   }
   return false;
 }
-
-
