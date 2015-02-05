@@ -144,8 +144,20 @@ tests(
     name: 'binding 4',
     code: 'match([[1, 2], [3, 4]], [many([many(_)])], function(ps) { return ps; })',
     expected: [[1,2],[3,4]]
+  },
+  {
+    name: 'piazza test',
+    code: 'match( [[3,[4,5]], [3,[7,8]]],\n ' +
+          ' [many([_,[many(4),many(7),_]])],\n ' + 
+          '               function (xs) { return JSON.stringify(xs);})\n',
+    expected: "[3,[],[],5,3,[],[],8]"
+  },
+  {
+    name: "many 1",
+    code: "match([[1,2],[3,4]],\n" + 
+          "  [many([many(_)])], function(num) { return JSON.stringify(num); })",
+    expected: '[[1,2],[3,4]]'
   }
-
 /*
   [[_, _], [_, _]], function(a, b, c, d)
   [many([_, _])], function(ps) {  ps = [1, 2, 3, 4]

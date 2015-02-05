@@ -1,4 +1,9 @@
-var _ = '_';
+/*
+ * Hao Chen (904547539)
+ * 
+ */
+
+var _ = {};
 var many = function (x) { return [many, x]; };
 var when = function (x) { return [when, x]; };
 
@@ -45,6 +50,7 @@ function matchPattern(value, pat, varList) {
   } else 
   if (typeof value === 'object' && value.hasOwnProperty(length)) {
     if (typeof pat === 'object' && pat.hasOwnProperty(length)) {
+      // array
       var value_index = 0, pat_index = 0;
       while (pat_index < pat.length) {
         if (isMany(pat[pat_index])) {
