@@ -30,19 +30,13 @@ OO.initializeCT = function() {
     }
   );
   OO.declareMethod("Number", "+", 
-    function(_this, that) {
-      return _this + that;
-    }
+    function(_this, that) { return _this + that; }
   );
   OO.declareMethod("Number", "-", 
-    function(_this, that) {
-      return _this - that;
-    }
+    function(_this, that) { return _this - that; }
   );
   OO.declareMethod("Number", "*", 
-    function(_this, that) {
-      return _this * that;
-    }
+    function(_this, that) { return _this * that; }
   );
   OO.declareMethod("Number", "/", 
     function(_this, that) {
@@ -86,6 +80,7 @@ OO.declareClass = function(name, superClassname, instVarNames) {
 
 OO.declareMethod = function(className, selector, implFn) {
   if (OO.class_table[className]) {
+    OO.class_table[className].methodNames.push(selector);
     OO.class_table[className].method[selector] = implFn;
   } else {
     throw new Error("No entry for the class");
@@ -94,10 +89,8 @@ OO.declareMethod = function(className, selector, implFn) {
 OO.instantiate = function(className) {
   args = Array.prototype.slice.call(arguments, 1);
   var _class = OO.class_table[className];
-  console.log(_class);
   if (_class) {
     var new_instance = new OO.ClassInstance(_class);
-    console.log("OK", _class.method["initialize"]);
     if (_class.method["initialize"]) {
       _class.method["initialize"].apply(undefined, 
                                       [new_instance].concat(args));
@@ -131,7 +124,6 @@ OO.send = function(recv, selector) {
   }
 
   method = recv_class.getMethod(selector);
-  console.log("hey: ", method);
   if (method) {
     return method.apply(undefined, [recv].concat(args));
   } else {
@@ -156,6 +148,7 @@ OO.Class = function(name, superClass, instVarNames) {
   this.superClass = superClass;
   this.instVarNames = instVarNames;
   this.method = {};
+  this.methodNames = [];
 };
 OO.Class.prototype.hasVar = function(varname) {
   if (this.instVarNames.indexOf(varname) >= 0) return true;
@@ -166,7 +159,9 @@ OO.Class.prototype.hasVar = function(varname) {
   }
 };
 OO.Class.prototype.hasMethod = function(methodname) {
-  if (this.method[methodname]) return true;
+  if (this.methodNames.indexOf(methodname) >= 0) {
+    return true;
+  }
   if (this.superClass) {
     return this.superClass.hasMethod(methodname);
   } else {
@@ -174,7 +169,9 @@ OO.Class.prototype.hasMethod = function(methodname) {
   }
 };
 OO.Class.prototype.getMethod = function(methodname) {
-  if (this.method[methodname]) return this.method[methodname];
+  if (this.methodNames.indexOf(methodname) >= 0) {
+    return this.method[methodname];
+  }
   if (this.superClass) {
     return this.superClass.getMethod(methodname);
   } else {
@@ -185,7 +182,6 @@ OO.Class.prototype.getMethod = function(methodname) {
 // ClassInstance
 OO.ClassInstance = function(_class) {
   this._class = _class;
-  console.log(_class);
   if (_class.superClass) {
     this.superInstance = new OO.ClassInstance(_class.superClass);
   } else {

@@ -123,4 +123,3 @@ tests(
     expected: 120
   }
 );
-
