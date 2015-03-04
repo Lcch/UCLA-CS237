@@ -1,3 +1,5 @@
+// Here, we assume there is no duplicate instvar between class and 
+// its super class.
 var OO = {};
 
 OO.initializeCT = function() {
@@ -7,27 +9,19 @@ OO.initializeCT = function() {
   OO.class_table["Object"] = new OO.Class("Object", undefined, []);
   OO.declareMethod("Object", "initialize", function() {});
   OO.declareMethod("Object", "===",
-    function(_this, that) {
-      return _this === that;
-    }
+    function(_this, that) { return _this === that; }
   );
   OO.declareMethod("Object", "!==",
-    function(_this, that) {
-      return _this !== that;
-    }
+    function(_this, that) { return _this !== that; }
   );
   OO.declareMethod("Object", "isNumber",
-    function(_this) {
-      return false;
-    }
+    function(_this) { return false; }
   );
 
   // Initial Number Class
   OO.declareClass("Number", "Object", ["num"]);
   OO.declareMethod("Number", "isNumber", 
-    function(_this) {
-      return true;
-    }
+    function(_this) { return true; }
   );
   OO.declareMethod("Number", "+", 
     function(_this, that) { return _this + that; }
@@ -39,15 +33,28 @@ OO.initializeCT = function() {
     function(_this, that) { return _this * that; }
   );
   OO.declareMethod("Number", "/", 
-    function(_this, that) {
-      return _this / that;
-    }
+    function(_this, that) { return _this / that; }
   );
   OO.declareMethod("Number", "%", 
-    function(_this, that) {
-      return _this % that;
-    }
+    function(_this, that) { return _this % that; }
   );
+  OO.declareMethod("Number", "<", 
+    function(_this, that) { return _this < that; }
+  );
+  OO.declareMethod("Number", "<=", 
+    function(_this, that) { return _this <= that; }
+  );
+  OO.declareMethod("Number", ">=", 
+    function(_this, that) { return _this >= that; }
+  );
+  OO.declareMethod("Number", ">", 
+    function(_this, that) { return _this > that; }
+  );
+
+  OO.declareClass("Null", "Object", [])
+  OO.declareClass("Boolean", "Object", [])
+  OO.declareClass("True", "Boolean", [])
+  OO.declareClass("False", "Boolean", [])
 };
 OO.declareClass = function(name, superClassname, instVarNames) {
   // Exception case 1: already contains a class with the same name
@@ -117,12 +124,7 @@ OO.setInstVar = function(recv, instVarName, value) {
 OO.send = function(recv, selector) {
   args = Array.prototype.slice.call(arguments, 2);
 
-  if (typeof recv === "number") {
-    recv_class = OO.class_table["Number"];
-  } else {
-    recv_class = recv._class;
-  }
-
+  recv_class = OO.getSuperClass(recv);
   method = recv_class.getMethod(selector);
   if (method) {
     return method.apply(undefined, [recv].concat(args));
@@ -132,13 +134,35 @@ OO.send = function(recv, selector) {
 };
 OO.superSend = function(superClassName, recv, selector) {
   args = Array.prototype.slice.call(arguments, 3);
-  recv_super_class = recv._class.superClass;
-  method = recv_super_class.getMethod(selector);
+  
+  recv_class = OO.getSuperClass(recv);
+  method = OO.class_table[superClassName].getMethod(selector);
   if (method) {
     return method.apply(undefined, [recv.superInstance].concat(args));
   } else {
     throw new Error("Undeclared instance selector");
   }
+};
+OO.getSuperClassName = function(recv) {
+  recv_class = OO.getSuperClass(recv);
+  return recv_class.superClass.name;
+};
+OO.getSuperClass = function(recv) {
+  if (recv === null) {
+    recv_class = OO.class_table["Null"];
+  } else
+  if (recv === true) {
+    recv_class = OO.class_table["True"];
+  } else 
+  if (recv === false) {
+    recv_class = OO.class_table["False"];
+  } else 
+  if (typeof recv === "number") {
+    recv_class = OO.class_table["Number"];
+  } else {
+    recv_class = recv._class;
+  }
+  return recv_class;
 };
 
 
@@ -206,6 +230,7 @@ OO.ClassInstance.prototype.getValue = function(varname) {
 OO.ClassInstance.prototype.setValue = function(varname, value) {
   if (this._class.instVarNames.indexOf(varname) >= 0) {
     this.variable[varname] = value;
+    return value;
   } else {
     if (this.superInstance) {
       return this.superInstance.setValue(varname, value);
@@ -214,5 +239,3 @@ OO.ClassInstance.prototype.setValue = function(varname, value) {
     }
   }
 };
-
-
