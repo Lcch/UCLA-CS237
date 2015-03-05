@@ -1,9 +1,25 @@
+// NLR is for return usage where return_marker to identify the return scope and 
+// return_value indetify the return value.
 function NLR(return_marker, return_value) {
   this.return_marker = return_marker;
   this.return_value = return_value;
 }
 
 O.transAST = function(ast) {
+  // O.super_class_dict stores the super class name of class.
+  // O.current_class stores the current class name when we translate the methodDecl.
+  // Use O.super_class and O.current_class, we can get the super class name easily for super translation.
+  O.super_class_dict = {};
+  O.super_class_dict["Object"] = null;
+  O.super_class_dict["Number"] = 'Object';
+  O.super_class_dict["Boolean"] = 'Object';
+  O.super_class_dict["True"] = 'Boolean';
+  O.super_class_dict["False"] = 'Boolean';
+  O.current_class = []; 
+  return O.translate(ast);
+}
+
+O.translate = function(ast) {
   return match(ast,
                ['program', many(_)], O.transPrograms,
                ['classDecl', _, _, _], O.transClassDecl,
@@ -29,7 +45,7 @@ O.transAST = function(ast) {
 O.transStatements = function(statements) {
   var ret = '';
   for (var i = 0; i < statements.length; i++) {
-    ret += O.transAST(statements[i]) + ';\n';
+    ret += O.translate(statements[i]) + ';\n';
   }
   return ret;
 }
@@ -39,6 +55,7 @@ O.transPrograms = function(statements) {
 };
 
 O.transClassDecl = function(name, superClassname, instVarNames) {
+  O.super_class_dict[name] = superClassname;
   var varnames = []
   for (var i = 0; i < instVarNames.length; i++) {
     varnames.push('"' + instVarNames[i] + '"');
@@ -51,41 +68,44 @@ O.transMethodDecl = function(className, sel, args, implFn) {
   for (var i = 0; i < args.length; i++) {
     args_st.push(args[i]);
   }
-  return 'OO.declareMethod("' + className + '", "' + sel + '", ' + 
-                           'function (' + args_st.join(', ') + ') {\n' +
-                           '  var $return_marker = {};\n' + 
-                           '  try {\n' + 
-                           O.transStatements(implFn) + 
-                           '  } catch (e) { \n' + 
-                           '    if (e instanceof NLR && e.return_marker === $return_marker) { \n' +
-                           '      return e.return_value;' +
-                           '    } else throw e; \n' +  
-                           '  }; \n' +
-                           '  return null; })\n';
+  O.current_class.push(className);
+  var ret = 'OO.declareMethod("' + className + '", "' + sel + '", ' + 
+                              'function (' + args_st.join(', ') + ') {\n' +
+                              '  var $return_marker = {};\n' + 
+                              '  try {\n' + 
+                              O.transStatements(implFn) + 
+                              '  } catch (e) { \n' + 
+                              '    if (e instanceof NLR && e.return_marker === $return_marker) { \n' +
+                              '      return e.return_value;' +
+                              '    } else throw e; \n' +  
+                              '  }; \n' +
+                              '  return null; })\n';
+  O.current_class.pop();
+  return ret;
 };
 
 O.transVarDecls = function(var_pairs) {
   var binding_pair_st = [];
   for (var i = 0; i < var_pairs.length; i++) {
-    binding_pair_st.push(var_pairs[i][0] + " = " + O.transAST(var_pairs[i][1]));
+    binding_pair_st.push(var_pairs[i][0] + " = " + O.translate(var_pairs[i][1]));
   }
   return 'var ' + binding_pair_st.join(', ') + '\n';
 };
 
 O.transReturn = function(e) {
-  return 'throw new NLR($return_marker, ' + O.transAST(e) + ')';
+  return 'throw new NLR($return_marker, ' + O.translate(e) + ')';
 };
 
 O.transSetInstVar = function(x, e) {
-  return 'OO.setInstVar(_this, "' + x + '", ' + O.transAST(e) + ')'; 
+  return 'OO.setInstVar(_this, "' + x + '", ' + O.translate(e) + ')'; 
 };
 
 O.transSetVar = function(x, e) {
-  return x + " = " + O.transAST(e) + '\n';
+  return x + " = " + O.translate(e) + '\n';
 };
 
 O.transExpr = function(e) {
-  return O.transAST(e);
+  return O.translate(e);
 };
 
 O.transTrue = function() { return "true"; };
@@ -104,16 +124,16 @@ O.transGetInstVar = function(x) {
 O.transNew = function(className, e_ls) {
   var st = ['"' + className + '"'];
   for (var i = 0; i < e_ls.length; i++) {
-    st.push(O.transAST(e_ls[i]));
+    st.push(O.translate(e_ls[i]));
   }
   return 'OO.instantiate(' + st.join(', ') + ')';
 };
 
 O.transSend = function(recv, m, args) {
-  var ret = O.transAST(recv);
+  var ret = O.translate(recv);
   var st = ['"' + m + '"'];
   for (var i = 0; i < args.length; i++) {
-    st.push(O.transAST(args[i]));
+    st.push(O.translate(args[i]));
   }
   return 'OO.send(' + ret + ', ' + st.join(', ') + ')';
 };
@@ -121,9 +141,14 @@ O.transSend = function(recv, m, args) {
 O.transSuper = function(m, args) {
   var st = [];
   for (var i = 0; i < args.length; i++) {
-    st.push(O.transAST(args));
+    st.push(O.translate(args));
   }
-  return 'OO.superSend(OO.getSuperClassName(_this), _this, "' + m + '"' + st.join(', ') + ')';
+  var superClassname = O.super_class_dict[O.current_class[O.current_class.length - 1]];
+  if (superClassname === undefined) {
+    throw new Error("No super class");
+  } else {
+    return 'OO.superSend("' + superClassname + '", _this, "' + m + '"' + st.join(', ') + ')';
+  }
 };
 
 O.transBlock = function(x_ls, st_ls) {
@@ -137,9 +162,9 @@ O.transBlock = function(x_ls, st_ls) {
   var implFn = 'var $return_value = null;';
   for (var i = 0; i < st_ls.length; i++) {
     if (i !== last_expr_index) {
-      implFn += O.transAST(st_ls[i]) + ';';
+      implFn += O.translate(st_ls[i]) + ';';
     } else {
-      implFn += '$return_value = ' + O.transAST(st_ls[i]) + ';';
+      implFn += '$return_value = ' + O.translate(st_ls[i]) + ';';
     }
   }
   implFn += 'return $return_value;'
@@ -302,7 +327,7 @@ OO.superSend = function(superClassName, recv, selector) {
   recv_class = OO.getRecvClass(recv);
   method = OO.class_table[superClassName].getMethod(selector);
   if (method) {
-    return method.apply(undefined, [recv.superInstance].concat(args));
+    return method.apply(undefined, [recv].concat(args));
   } else {
     throw new Error("Undeclared instance selector");
   }
