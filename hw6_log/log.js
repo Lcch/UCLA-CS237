@@ -50,7 +50,22 @@ Var.prototype.rewrite = function(subst) {
 // Part II: Subst.prototype.unify(term1, term2)
 // -----------------------------------------------------------------------------
 
+function toSolvedForm(subst) {
+  console.log("answer: ", subst);
+  var ret_subst = new Subst();
+  for (var varName in subst.bindings) {
+    ret_subst.bind(varName, new Var(varName).rewrite(subst));
+  }
+  return ret_subst;
+};
+
 Subst.prototype.unify = function(term1, term2) {
+  this.unify_union(term1, term2);
+  this.bindings = toSolvedForm(this).bindings;
+  return this;
+};
+
+Subst.prototype.unify_union = function(term1, term2) {
 	if (term1 === term2) return this;
 	if (!isVar(term1)) {
 		var temp = term1;
@@ -59,10 +74,10 @@ Subst.prototype.unify = function(term1, term2) {
 	};
 	if (isVar(term1) && isVar(term2) && term1.name === term2.name) return this;
 	if (isVar(term1) && this.lookup(term1.name) !== undefined) {
-		return this.unify(this.lookup(term1.name), term2);
+		return this.unify_union(this.lookup(term1.name), term2);
 	}
 	if (isVar(term2) && this.lookup(term2.name) !== undefined) {
-		return this.unify(term1, this.lookup(term2.name));
+		return this.unify_union(term1, this.lookup(term2.name));
 	}
 	if (isVar(term1)) {
 		var name = term1.name;
@@ -72,7 +87,7 @@ Subst.prototype.unify = function(term1, term2) {
 	if (isClause(term1) && isClause(term2) && term1.name === term2.name &&
 		term1.args.length === term2.args.length) {
 		for (var i = 0; i < term1.args.length; i++) {
-			this.unify(term1.args[i], term2.args[i]);
+			this.unify_union(term1.args[i], term2.args[i]);
 		}
 		return this;
 	}; 
@@ -110,15 +125,6 @@ function matchRules(rules_set, cur_c) {
   }
 };
 
-function cleanOutput(subst) {
-  console.log("answer: ", subst);
-  var ret_subst = new Subst();
-  for (var varName in subst.bindings) {
-    ret_subst.bind(varName, new Var(varName).rewrite(subst));
-  }
-  return ret_subst;
-};
-
 rules_set = {};
 
 Program.prototype.solve = function() {
@@ -145,7 +151,7 @@ Program.prototype.search = function(queries) {
       console.log(goal);
       if (goal.clauses.length === 0) {
         stack.pop();
-        return cleanOutput(goal.subst);
+        return goal.subst;
       } else {
         goal.search_index += 1;
         var cur_c = goal.clauses[0];
