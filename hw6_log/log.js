@@ -98,10 +98,6 @@ Subst.prototype.unify_union = function(term1, term2) {
 // Part III: Program.prototype.solve()
 // -----------------------------------------------------------------------------
 
-function Interator(next) {
-	this.next = next;
-};
-
 function Goal(clauses, subst, search_index, parent, depth) {
 	this.clauses = clauses;
 	this.subst = subst;
@@ -140,6 +136,12 @@ Program.prototype.solve = function() {
   return this.search(this.query);
 };
 
+
+function Interator(next) {
+  this.next = next;
+};
+
+
 Program.prototype.search = function(queries) {
 	var goal = new Goal(queries, new Subst(), -1, null, 0);
 	var stack = [];
@@ -149,6 +151,13 @@ Program.prototype.search = function(queries) {
     while (stack.length > 0) {
       var goal = stack[stack.length - 1];
       console.log(goal);
+      
+      // exceed limited search depth. 
+      if (goal.depth > 100) {
+        stack.pop();
+        continue;
+      }
+
       if (goal.clauses.length === 0) {
         stack.pop();
         return goal.subst;
